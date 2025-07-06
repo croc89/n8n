@@ -1,0 +1,50 @@
+# Arquivo de configuração para deploy do n8n no Render.com
+# Este blueprint define dois serviços: a aplicação n8n e um banco de dados PostgreSQL.
+
+services:
+  # --- Serviço Principal do n8n (Aplicação Web) ---
+  - type: web
+    name: n8n-agencia # Você pode personalizar este nome se quiser.
+    env: node
+    plan: starter # Utiliza o plano gratuito "Starter" do Render.
+    # O Render automaticamente detecta o package.json e executa 'npm install'
+    buildCommand: "npm run build"
+    startCommand: "npx n8n"
+    healthCheckPath: /healthz
+    envVars:
+      - key: DB_TYPE
+        value: postgresdb
+      - key: DB_POSTGRESDB_DATABASE
+        fromService:
+          type: pserv
+          name: n8n-db # Deve ser o mesmo nome do serviço de banco de dados abaixo
+          property: database
+      - key: DB_POSTGRESDB_HOST
+        fromService:
+          type: pserv
+          name: n8n-db
+          property: host
+      - key: DB_POSTGRESDB_USER
+        fromService:
+          type: pserv
+          name: n8n-db
+          property: user
+      - key: DB_POSTGRESDB_PASSWORD
+        fromService:
+          type: pserv
+          name: n8n-db
+          property: password
+      - key: GENERIC_TIMEZONE # Essencial para agendamentos funcionarem no fuso correto
+        value: America/Sao_Paulo
+      - key: WEBHOOK_URL # Permite que o n8n saiba seu próprio endereço público
+        fromService:
+          type: web
+          name: n8n-agencia # Deve ser o mesmo 'name' deste serviço
+          property: url
+
+  # --- Serviço de Banco de Dados (PostgreSQL) ---
+  - type: pserv
+    name: n8n-db # Nome interno para o banco de dados
+    databaseName: n8n # Nome do banco de dados que será criado
+    user: n8n_user # Nome do usuário para acessar o banco
+    plan: starter # Utiliza o plano gratuito de banco de dados do Render
