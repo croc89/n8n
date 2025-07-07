@@ -1,27 +1,24 @@
+# Define os serviços que compõem a aplicação n8n
+
 services:
-  # Serviço 1: A instância do n8n
+  # Serviço 1: A aplicação web n8n
   - type: web
     name: n8n-agencia
     env: node
-    plan: free # Você pode ajustar para um plano pago se precisar de mais performance
-    region: oregon # Escolha a região mais próxima de você ou de seus clientes
-    buildCommand: npm install
-    startCommand: npx n8n start
-    healthCheckPath: /healthz
+    plan: free # Você pode ajustar o plano conforme sua necessidade
+    region: oregon
+    branch: main
+    
+    # Comandos para construir e iniciar a aplicação
+    buildCommand: "npm install"
+    startCommand: "npx n8n start"
+    
+    # Variáveis de ambiente para conectar o n8n ao banco de dados
     envVars:
-      - key: N8N_HOST
-        value: n8n-agencia.onrender.com
-      - key: N8N_PORT
-        value: 10000
-      - key: N8N_PROTOCOL
-        value: https
-      - key: NODE_ENV
-        value: production
-      - key: WEBHOOK_URL
-        value: https://n8n-agencia.onrender.com
       - key: DB_TYPE
         value: postgresdb
       - key: DB_POSTGRESDB_HOST
+        # Render cria um nome de host interno para o serviço de banco de dados
         fromService:
           type: pserv
           name: n8n-db
@@ -46,19 +43,24 @@ services:
           type: pserv
           name: n8n-db
           property: password
-    # CORREÇÃO 1: O bloco 'disks' agora está corretamente indentado DENTRO do serviço 'n8n-agencia'.
-    disks:
+
+    # CORREÇÃO 1: A propriedade 'disks' foi alterada para 'volumes'
+    volumes: 
       - name: n8n-data
         mountPath: /home/node/.n8n
         sizeGB: 1
 
   # Serviço 2: O banco de dados PostgreSQL
-  - type: pserv
+  - type: pserv # 'pserv' é o tipo para serviço de banco de dados PostgreSQL
     name: n8n-db
     plan: free
     region: oregon
-    # CORREÇÃO 2 e 3: 'repository' e 'tag' foram combinados na propriedade 'image'.
-    image: postgres:13
+    
+    # CORREÇÃO 2: A propriedade 'image' foi expandida para um objeto com 'repository' e 'tag'
+    image:
+      repository: postgres
+      tag: "13" # Usar aspas é uma boa prática para tags de versão
+      
     disk:
       name: n8n-postgres-data
       mountPath: /var/lib/postgresql/data
