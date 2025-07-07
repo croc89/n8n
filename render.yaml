@@ -1,34 +1,31 @@
+# Arquivo de configuração para a plataforma Render.com
+
+env:
+  - key: PYTHON_VERSION
+    value: 3.11.0
+
 services:
-  # Serviço 1: O Bot WhatsApp (Aplicação Web)
+  # Serviço da Aplicação Web (o seu bot ou API)
   - type: web
-    name: bot-whatsapp
-    env: node
-    region: oregon # Região onde o serviço será hospedado
-    plan: free # Plano gratuito para o serviço web
-    buildFilter:
-      paths:
-        - src/**
-    buildCommand: "npm install"
-    startCommand: "npm start"
+    name: minha-automacao
+    env: python
+    buildCommand: "./build.sh"
+    startCommand: "python app.py"
     envVars:
-      - key: DATABASE_URL # Nome da variável de ambiente
+      - key: DATABASE_URL
         fromService:
           type: pserv
-          name: postgres-whatsapp
+          name: postgres
           property: connectionString
-      - key: PORT
-        value: 10000
-      - key: NODE_VERSION
-        value: 18.18.2
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false # Recomenda-se configurar este segredo no dashboard do Render
 
-  # Serviço 2: Banco de Dados PostgreSQL
+  # Serviço do Banco de Dados PostgreSQL
   - type: pserv
-    name: postgres-whatsapp
+    name: postgres
+    image: postgres:13  # <-- AQUI ESTÁ A CORREÇÃO! A versão é definida na imagem.
     env: postgres
-    region: oregon # É bom manter a mesma região do bot para baixa latência
-    plan: free # Plano gratuito para o banco de dados
-    postgresMajorVersion: 13
     disk:
       name: postgres-data
-      sizeGB: 1
       mountPath: /var/lib/postgresql/data
+      sizeGB: 1
