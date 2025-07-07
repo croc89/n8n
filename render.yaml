@@ -1,26 +1,15 @@
-# Arquivo de configuração para o Render.com
-# Versão 4.0 - Corrigindo indentação do 'disks' e estrutura do 'image'
-
 services:
-  # Serviço 1: A aplicação n8n (o cérebro)
+  # Serviço 1: A aplicação principal do n8n
   - type: web
     name: n8n-agencia
     env: node
-    plan: starter # Plano gratuito ou 'starter' para evitar que o serviço durma
-    region: oregon # ou a região de sua preferência
-    buildCommand: "npm install && npm run build"
-    startCommand: "npm start"
+    plan: free
+    region: oregon 
+    branch: main
+    buildCommand: ""
+    startCommand: "npx n8n start"
     healthCheckPath: /healthz
     envVars:
-      - key: N8N_HOST
-        value: n8n-agencia.onrender.com # O Render criará essa URL
-      - key: N8N_PROTOCOL
-        value: https
-      - key: NODE_ENV
-        value: production
-      - key: WEBHOOK_URL
-        value: https://n8n-agencia.onrender.com/
-      # Conexão com o Banco de Dados
       - key: DB_TYPE
         value: postgresdb
       - key: DB_POSTGRESDB_HOST
@@ -28,6 +17,11 @@ services:
           type: pserv
           name: n8n-db
           property: host
+      - key: DB_POSTGRESDB_PORT
+        fromService:
+          type: pserv
+          name: n8n-db
+          property: port
       - key: DB_POSTGRESDB_DATABASE
         fromService:
           type: pserv
@@ -43,25 +37,32 @@ services:
           type: pserv
           name: n8n-db
           property: password
-    # Configuração do Disco Persistente para salvar workflows e credenciais
-    disks: # <-- CORREÇÃO AQUI: Indentação ajustada para pertencer ao serviço 'web'
+      - key: N8N_HOST
+        fromService:
+          type: web
+          name: n8n-agencia
+          property: host
+      - key: WEBHOOK_URL
+        fromService:
+          type: web
+          name: n8n-agencia
+          property: url
+    # CORREÇÃO 1: O bloco 'disks' agora está corretamente indentado DENTRO do serviço 'n8n-agencia'.
+    disks:
       - name: n8n-data
         mountPath: /home/node/.n8n
         sizeGB: 1
 
-  # Serviço 2: O Banco de Dados PostgreSQL (a memória)
+  # Serviço 2: O banco de dados PostgreSQL
   - type: pserv
     name: n8n-db
-    image: postgres:13 # <-- CORREÇÃO AQUI: Estrutura simplificada
     plan: free
     region: oregon
-    envVars:
-      - key: POSTGRES_DB
-        generateValue: true
-      - key: POSTGRES_USER
-        generateValue: true
-      - key: POSTGRES_PASSWORD
-        generateValue: true
+    # CORREÇÃO 2: A propriedade 'image' agora é um objeto estruturado com 'repository' e 'tag'.
+    image:
+      repository: postgres
+      tag: "13"
     disk:
-      name: postgres-data
+      name: n8n-postgres-data
+      mountPath: /var/lib/postgresql/data
       sizeGB: 1
