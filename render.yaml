@@ -1,73 +1,56 @@
-# render.yaml
-# Estrutura completa para deploy do n8n com um banco de dados PostgreSQL na Render
-
 services:
-  # Serviço 1: Aplicação Web do n8n
-  - type: web
-    name: n8n
-    env: node
-    # Define o repositório do n8n para a Render clonar e construir
-    repo: https://github.com/n8n-io/n8n.git
+  # Serviço para o n8n
+  - name: n8n
+    type: web
+    env: docker
+    repo: https://github.com/n8n-io/n8n.git # Repositório oficial do n8n como exemplo
     branch: master
-    # Comandos para instalar dependências e construir a aplicação
-    buildCommand: npm install && npm run build
-    # Comando para iniciar a aplicação
-    startCommand: npm start
-    # Porta interna que o n8n usa
-    healthCheckPath: /healthz
-    # Variáveis de ambiente essenciais para o n8n funcionar
+    dockerfilePath: ./packages/cli/docker/images/n8n-debian/Dockerfile
     envVars:
-      # Define o tipo de banco de dados
-      - key: DB_TYPE
-        value: postgresdb
-      # Pega o host do banco de dados criado abaixo
-      - key: DB_POSTGRESDB_HOST
-        fromDatabase:
-          name: n8n-db # Deve ser o mesmo nome do serviço do banco de dados
-          property: host
-      # Pega a porta do banco de dados
-      - key: DB_POSTGRESDB_PORT
-        fromDatabase:
-          name: n8n-db
-          property: port
-      # Pega o nome de usuário do banco de dados
-      - key: DB_POSTGRESDB_USER
-        fromDatabase:
-          name: n8n-db
-          property: user
-      # Pega a senha do banco de dados
-      - key: DB_POSTGRESDB_PASSWORD
-        fromDatabase:
-          name: n8n-db
-          property: password
-      # Pega o nome do banco de dados
-      - key: DB_POSTGRESDB_DATABASE
-        fromDatabase:
-          name: n8n-db
-          property: database
-      # Define a URL base da aplicação (importante para webhooks)
-      - key: WEBHOOK_URL
-        fromService:
-          type: web
-          name: n8n # Deve ser o mesmo nome deste serviço
-          property: url
-      # Outra variável de URL que pode ser necessária
       - key: N8N_HOST
         fromService:
           type: web
           name: n8n
           property: url
-    # Disco persistente para os dados do n8n (workflows, credenciais, etc.)
+      - key: DB_TYPE
+        value: postgresdb
+      - key: DB_POSTGRESDB_HOST
+        fromService:
+          type: pserv
+          name: postgres
+          property: host
+      - key: DB_POSTGRESDB_PORT
+        fromService:
+          type: pserv
+          name: postgres
+          property: port
+      - key: DB_POSTGRESDB_DATABASE
+        fromService:
+          type: pserv
+          name: postgres
+          property: database
+      - key: DB_POSTGRESDB_USER
+        fromService:
+          type: pserv
+          name: postgres
+          property: user
+      - key: DB_POSTGRESDB_PASSWORD
+        fromService:
+          type: pserv
+          name: postgres
+          property: password
+    
+    # --- CORREÇÃO AQUI ---
+    # O disco foi movido para o nível de serviço correto.
     disks:
       - name: n8n-data
         mountPath: /home/node/.n8n
-        sizeGB: 1
+        sizeGB: 1 # É uma boa prática definir um tamanho para o disco
 
-# Seção para definir o banco de dados
-databases:
-  # Serviço 2: Banco de Dados PostgreSQL
-  - name: n8n-db
-    # 'plan: free' pode ser usado se disponível no seu plano
-    plan: free
-    # Define a versão do PostgreSQL
+  # Serviço para o Banco de Dados PostgreSQL
+  - name: postgres
+    type: pserv
+    image:
+      url: postgres:13
+    plan: free # Define o plano, 'free' é uma opção comum para testes
     postgresMajorVersion: 13
