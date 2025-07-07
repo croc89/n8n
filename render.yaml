@@ -1,4 +1,4 @@
-# Blueprint do Render para Deploy do n8n
+# Blueprint do Render para Deploy do n8n v3.0
 # Este arquivo instrui o Render a criar e conectar os serviços necessários.
 
 services:
@@ -18,7 +18,7 @@ services:
     disks:
       - name: n8n-data
         mountPath: /home/node/.n8n
-        sizeGB: 1 # O plano Starter oferece 1GB, suficiente para começar
+        sizeGB: 1
         
     # Variáveis de Ambiente para configurar o n8n
     envVars:
@@ -27,7 +27,7 @@ services:
         value: postgresdb
       - key: DB_POSTGRESDB_HOST
         fromService:
-          type: pserv # Mesmo sendo um DB, ele é um 'serviço privado' na rede interna
+          type: pserv
           name: n8n-db # Nome do serviço de DB definido abaixo
           property: host
       - key: DB_POSTGRESDB_USER
@@ -63,9 +63,16 @@ services:
         value: production
 
   # --- Serviço 2: O Banco de Dados (PostgreSQL) ---
-  - type: pb         # MUDANÇA AQUI: de 'pserv' para 'pb' (PostgreSQL Database)
-    name: n8n-db     # Nome interno para o banco de dados
-    database: n8n    # MUDANÇA AQUI: de 'databaseName' para 'database'
-    user: n8n_user   # Nome de usuário para acessar o banco
-    plan: free       # Utiliza o plano gratuito de banco de dados do Render
+  - type: pserv        # MUDANÇA AQUI: Voltamos para 'pserv' (Serviço Privado)
+    name: n8n-db       # Nome interno para o banco de dados
+    image:            # ADIÇÃO AQUI: Especificamos a imagem do serviço
+      name: postgres:13 # Usamos a imagem oficial do PostgreSQL versão 13
+    plan: free         # Utiliza o plano gratuito de banco de dados do Render
     region: oregon
+    envVars:           # ADIÇÃO AQUI: Definimos as variáveis para criar o banco e o usuário
+      - key: POSTGRES_DB
+        value: n8n
+      - key: POSTGRES_USER
+        value: n8n_user
+      - key: POSTGRES_PASSWORD
+        generateValue: true # O Render irá gerar uma senha segura automaticamente
