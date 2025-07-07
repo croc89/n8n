@@ -8,21 +8,21 @@ services:
     buildCommand: "./build.sh"
     startCommand: "python app.py"
     envVars:
-      - key: PYTHON_VERSION # <-- CORREÇÃO 1: Definindo a versão do Python aqui
+      - key: PYTHON_VERSION
         value: 3.11.0
       - key: DATABASE_URL
         fromService:
           type: pserv
           name: postgres
-          property: connectionString
+          property: connectionString # <-- Agora isso vai funcionar, pois o serviço 'postgres' estará válido.
       - key: TELEGRAM_BOT_TOKEN
-        sync: false # Lembre-se de configurar este segredo no dashboard do Render
+        sync: false
 
-  # Serviço do Banco de Dados PostgreSQL
+  # Serviço do Banco de Dados PostgreSQL Gerenciado
   - type: pserv
     name: postgres
-    env: postgres
-    # <-- CORREÇÃO 2: A linha "image: postgres:13" foi removida daqui.
+    # <-- CORREÇÃO PRINCIPAL: A linha "env: postgres" foi removida.
+    # A Render já sabe o que fazer com um "type: pserv". Não são necessárias mais instruções de runtime.
     disk:
       name: postgres-data
       mountPath: /var/lib/postgresql/data
