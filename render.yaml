@@ -1,67 +1,73 @@
-# Define os serviços que compõem a aplicação n8n
+# render.yaml
+# Estrutura completa para deploy do n8n com um banco de dados PostgreSQL na Render
 
 services:
-  # Serviço 1: A aplicação web n8n
+  # Serviço 1: Aplicação Web do n8n
   - type: web
-    name: n8n-agencia
+    name: n8n
     env: node
-    plan: free # Você pode ajustar o plano conforme sua necessidade
-    region: oregon
-    branch: main
-    
-    # Comandos para construir e iniciar a aplicação
-    buildCommand: "npm install"
-    startCommand: "npx n8n start"
-    
-    # Variáveis de ambiente para conectar o n8n ao banco de dados
+    # Define o repositório do n8n para a Render clonar e construir
+    repo: https://github.com/n8n-io/n8n.git
+    branch: master
+    # Comandos para instalar dependências e construir a aplicação
+    buildCommand: npm install && npm run build
+    # Comando para iniciar a aplicação
+    startCommand: npm start
+    # Porta interna que o n8n usa
+    healthCheckPath: /healthz
+    # Variáveis de ambiente essenciais para o n8n funcionar
     envVars:
+      # Define o tipo de banco de dados
       - key: DB_TYPE
         value: postgresdb
+      # Pega o host do banco de dados criado abaixo
       - key: DB_POSTGRESDB_HOST
-        # Render cria um nome de host interno para o serviço de banco de dados
-        fromService:
-          type: pserv
-          name: n8n-db
+        fromDatabase:
+          name: n8n-db # Deve ser o mesmo nome do serviço do banco de dados
           property: host
+      # Pega a porta do banco de dados
       - key: DB_POSTGRESDB_PORT
-        fromService:
-          type: pserv
+        fromDatabase:
           name: n8n-db
           property: port
-      - key: DB_POSTGRESDB_DATABASE
-        fromService:
-          type: pserv
-          name: n8n-db
-          property: database
+      # Pega o nome de usuário do banco de dados
       - key: DB_POSTGRESDB_USER
-        fromService:
-          type: pserv
+        fromDatabase:
           name: n8n-db
           property: user
+      # Pega a senha do banco de dados
       - key: DB_POSTGRESDB_PASSWORD
-        fromService:
-          type: pserv
+        fromDatabase:
           name: n8n-db
           property: password
-
-    # CORREÇÃO 1: A propriedade 'disks' foi alterada para 'volumes'
-    volumes: 
+      # Pega o nome do banco de dados
+      - key: DB_POSTGRESDB_DATABASE
+        fromDatabase:
+          name: n8n-db
+          property: database
+      # Define a URL base da aplicação (importante para webhooks)
+      - key: WEBHOOK_URL
+        fromService:
+          type: web
+          name: n8n # Deve ser o mesmo nome deste serviço
+          property: url
+      # Outra variável de URL que pode ser necessária
+      - key: N8N_HOST
+        fromService:
+          type: web
+          name: n8n
+          property: url
+    # Disco persistente para os dados do n8n (workflows, credenciais, etc.)
+    disks:
       - name: n8n-data
         mountPath: /home/node/.n8n
         sizeGB: 1
 
-  # Serviço 2: O banco de dados PostgreSQL
-  - type: pserv # 'pserv' é o tipo para serviço de banco de dados PostgreSQL
-    name: n8n-db
+# Seção para definir o banco de dados
+databases:
+  # Serviço 2: Banco de Dados PostgreSQL
+  - name: n8n-db
+    # 'plan: free' pode ser usado se disponível no seu plano
     plan: free
-    region: oregon
-    
-    # CORREÇÃO 2: A propriedade 'image' foi expandida para um objeto com 'repository' e 'tag'
-    image:
-      repository: postgres
-      tag: "13" # Usar aspas é uma boa prática para tags de versão
-      
-    disk:
-      name: n8n-postgres-data
-      mountPath: /var/lib/postgresql/data
-      sizeGB: 1
+    # Define a versão do PostgreSQL
+    postgresMajorVersion: 13
