@@ -1,15 +1,24 @@
 services:
-  # Serviço 1: A aplicação principal do n8n
+  # Serviço 1: A instância do n8n
   - type: web
     name: n8n-agencia
     env: node
-    plan: free
-    region: oregon 
-    branch: main
-    buildCommand: ""
-    startCommand: "npx n8n start"
+    plan: free # Você pode ajustar para um plano pago se precisar de mais performance
+    region: oregon # Escolha a região mais próxima de você ou de seus clientes
+    buildCommand: npm install
+    startCommand: npx n8n start
     healthCheckPath: /healthz
     envVars:
+      - key: N8N_HOST
+        value: n8n-agencia.onrender.com
+      - key: N8N_PORT
+        value: 10000
+      - key: N8N_PROTOCOL
+        value: https
+      - key: NODE_ENV
+        value: production
+      - key: WEBHOOK_URL
+        value: https://n8n-agencia.onrender.com
       - key: DB_TYPE
         value: postgresdb
       - key: DB_POSTGRESDB_HOST
@@ -37,16 +46,6 @@ services:
           type: pserv
           name: n8n-db
           property: password
-      - key: N8N_HOST
-        fromService:
-          type: web
-          name: n8n-agencia
-          property: host
-      - key: WEBHOOK_URL
-        fromService:
-          type: web
-          name: n8n-agencia
-          property: url
     # CORREÇÃO 1: O bloco 'disks' agora está corretamente indentado DENTRO do serviço 'n8n-agencia'.
     disks:
       - name: n8n-data
@@ -58,10 +57,8 @@ services:
     name: n8n-db
     plan: free
     region: oregon
-    # CORREÇÃO 2: A propriedade 'image' agora é um objeto estruturado com 'repository' e 'tag'.
-    image:
-      repository: postgres
-      tag: "13"
+    # CORREÇÃO 2 e 3: 'repository' e 'tag' foram combinados na propriedade 'image'.
+    image: postgres:13
     disk:
       name: n8n-postgres-data
       mountPath: /var/lib/postgresql/data
