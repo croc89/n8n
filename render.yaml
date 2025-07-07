@@ -1,28 +1,34 @@
-# Arquivo de configuração para deploy do n8n no Render.com
-# Este blueprint define dois serviços: a aplicação n8n e um banco de dados PostgreSQL.
+# Blueprint do Render para Deploy do n8n
+# Este arquivo instrui o Render a criar e conectar os serviços necessários.
 
 services:
-  # --- Serviço Principal do n8n (Aplicação Web) ---
+  # --- Serviço 1: A Aplicação n8n (Web Service) ---
   - type: web
-    name: n8n-agencia # Você pode personalizar este nome se quiser.
+    name: n8n-agencia # Nome que aparecerá no seu dashboard do Render
     env: node
-    plan: starter # Utiliza o plano gratuito "Starter" do Render.
-    # O Render automaticamente detecta o package.json e executa 'npm install'
-    buildCommand: "npm run build"
-    startCommand: "npx n8n"
-    healthCheckPath: /healthz
+    plan: starter
+    region: oregon
+    branch: main
+    
+    # Comandos de Build e Start
+    buildCommand: "npm install && npm run build"
+    startCommand: "npm start"
+    
+    # Configuração do Disco Persistente para salvar seus dados e workflows
+    disks:
+      - name: n8n-data
+        mountPath: /home/node/.n8n
+        sizeGB: 1 # O plano Starter oferece 1GB, suficiente para começar
+        
+    # Variáveis de Ambiente para configurar o n8n
     envVars:
+      # --- Configuração do Banco de Dados ---
       - key: DB_TYPE
         value: postgresdb
-      - key: DB_POSTGRESDB_DATABASE
-        fromService:
-          type: pserv
-          name: n8n-db # Deve ser o mesmo nome do serviço de banco de dados abaixo
-          property: database
       - key: DB_POSTGRESDB_HOST
         fromService:
-          type: pserv
-          name: n8n-db
+          type: pserv # Mesmo sendo um DB, ele é um 'serviço privado' na rede interna
+          name: n8n-db # Nome do serviço de DB definido abaixo
           property: host
       - key: DB_POSTGRESDB_USER
         fromService:
@@ -34,17 +40,32 @@ services:
           type: pserv
           name: n8n-db
           property: password
-      - key: GENERIC_TIMEZONE # Essencial para agendamentos funcionarem no fuso correto
-        value: America/Sao_Paulo
-      - key: WEBHOOK_URL # Permite que o n8n saiba seu próprio endereço público
+      - key: DB_POSTGRESDB_DATABASE
+        fromService:
+          type: pserv
+          name: n8n-db
+          property: database
+          
+      # --- Configurações Gerais do n8n ---
+      - key: N8N_HOST
         fromService:
           type: web
-          name: n8n-agencia # Deve ser o mesmo 'name' deste serviço
+          name: n8n-agencia # O nome deste próprio serviço
+          property: host
+      - key: WEBHOOK_URL
+        fromService:
+          type: web
+          name: n8n-agencia
           property: url
+      - key: GENERIC_TIMEZONE
+        value: "America/Sao_Paulo"
+      - key: NODE_ENV
+        value: production
 
-  # --- Serviço de Banco de Dados (PostgreSQL) ---
-  - type: pserv
-    name: n8n-db # Nome interno para o banco de dados
-    databaseName: n8n # Nome do banco de dados que será criado
-    user: n8n_user # Nome do usuário para acessar o banco
-    plan: starter # Utiliza o plano gratuito de banco de dados do Render
+  # --- Serviço 2: O Banco de Dados (PostgreSQL) ---
+  - type: pb         # MUDANÇA AQUI: de 'pserv' para 'pb' (PostgreSQL Database)
+    name: n8n-db     # Nome interno para o banco de dados
+    database: n8n    # MUDANÇA AQUI: de 'databaseName' para 'database'
+    user: n8n_user   # Nome de usuário para acessar o banco
+    plan: free       # Utiliza o plano gratuito de banco de dados do Render
+    region: oregon
