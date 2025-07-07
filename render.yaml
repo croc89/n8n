@@ -21,10 +21,9 @@ services:
   # Serviço do Banco de Dados PostgreSQL Gerenciado
   - type: pserv
     name: postgres
-    # CORREÇÃO CRÍTICA: A linha 'runtime: postgres' foi REMOVIDA.
-    # Este campo não é válido e causava o conflito principal.
+    # A linha 'runtime: postgres' foi removida daqui.
+    # Esta é a correção essencial.
     disk:
       name: postgres-data
-      # RESTAURADO: O 'mountPath' é, de fato, obrigatório.
       mountPath: /var/lib/postgresql/data
       sizeGB: 1
