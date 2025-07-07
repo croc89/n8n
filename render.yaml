@@ -1,9 +1,5 @@
 # Arquivo de configuração para a plataforma Render.com
 
-env:
-  - key: PYTHON_VERSION
-    value: 3.11.0
-
 services:
   # Serviço da Aplicação Web (o seu bot ou API)
   - type: web
@@ -12,19 +8,21 @@ services:
     buildCommand: "./build.sh"
     startCommand: "python app.py"
     envVars:
+      - key: PYTHON_VERSION # <-- CORREÇÃO 1: Definindo a versão do Python aqui
+        value: 3.11.0
       - key: DATABASE_URL
         fromService:
           type: pserv
           name: postgres
           property: connectionString
       - key: TELEGRAM_BOT_TOKEN
-        sync: false # Recomenda-se configurar este segredo no dashboard do Render
+        sync: false # Lembre-se de configurar este segredo no dashboard do Render
 
   # Serviço do Banco de Dados PostgreSQL
   - type: pserv
     name: postgres
-    image: postgres:13  # <-- AQUI ESTÁ A CORREÇÃO! A versão é definida na imagem.
     env: postgres
+    # <-- CORREÇÃO 2: A linha "image: postgres:13" foi removida daqui.
     disk:
       name: postgres-data
       mountPath: /var/lib/postgresql/data
