@@ -1,35 +1,38 @@
-# Blueprint do Render para Deploy do n8n v3.0
-# Este arquivo instrui o Render a criar e conectar os serviços necessários.
+# Arquivo de configuração para o Render.com
+# Versão 4.0 - Corrigindo indentação do 'disks' e estrutura do 'image'
 
 services:
-  # --- Serviço 1: A Aplicação n8n (Web Service) ---
+  # Serviço 1: A aplicação n8n (o cérebro)
   - type: web
-    name: n8n-agencia # Nome que aparecerá no seu dashboard do Render
+    name: n8n-agencia
     env: node
-    plan: starter
-    region: oregon
-    branch: main
-    
-    # Comandos de Build e Start
+    plan: starter # Plano gratuito ou 'starter' para evitar que o serviço durma
+    region: oregon # ou a região de sua preferência
     buildCommand: "npm install && npm run build"
     startCommand: "npm start"
-    
-    # Configuração do Disco Persistente para salvar seus dados e workflows
-    disks:
-      - name: n8n-data
-        mountPath: /home/node/.n8n
-        sizeGB: 1
-        
-    # Variáveis de Ambiente para configurar o n8n
+    healthCheckPath: /healthz
     envVars:
-      # --- Configuração do Banco de Dados ---
+      - key: N8N_HOST
+        value: n8n-agencia.onrender.com # O Render criará essa URL
+      - key: N8N_PROTOCOL
+        value: https
+      - key: NODE_ENV
+        value: production
+      - key: WEBHOOK_URL
+        value: https://n8n-agencia.onrender.com/
+      # Conexão com o Banco de Dados
       - key: DB_TYPE
         value: postgresdb
       - key: DB_POSTGRESDB_HOST
         fromService:
           type: pserv
-          name: n8n-db # Nome do serviço de DB definido abaixo
+          name: n8n-db
           property: host
+      - key: DB_POSTGRESDB_DATABASE
+        fromService:
+          type: pserv
+          name: n8n-db
+          property: database
       - key: DB_POSTGRESDB_USER
         fromService:
           type: pserv
@@ -40,39 +43,25 @@ services:
           type: pserv
           name: n8n-db
           property: password
-      - key: DB_POSTGRESDB_DATABASE
-        fromService:
-          type: pserv
-          name: n8n-db
-          property: database
-          
-      # --- Configurações Gerais do n8n ---
-      - key: N8N_HOST
-        fromService:
-          type: web
-          name: n8n-agencia # O nome deste próprio serviço
-          property: host
-      - key: WEBHOOK_URL
-        fromService:
-          type: web
-          name: n8n-agencia
-          property: url
-      - key: GENERIC_TIMEZONE
-        value: "America/Sao_Paulo"
-      - key: NODE_ENV
-        value: production
+    # Configuração do Disco Persistente para salvar workflows e credenciais
+    disks: # <-- CORREÇÃO AQUI: Indentação ajustada para pertencer ao serviço 'web'
+      - name: n8n-data
+        mountPath: /home/node/.n8n
+        sizeGB: 1
 
-  # --- Serviço 2: O Banco de Dados (PostgreSQL) ---
-  - type: pserv        # MUDANÇA AQUI: Voltamos para 'pserv' (Serviço Privado)
-    name: n8n-db       # Nome interno para o banco de dados
-    image:            # ADIÇÃO AQUI: Especificamos a imagem do serviço
-      name: postgres:13 # Usamos a imagem oficial do PostgreSQL versão 13
-    plan: free         # Utiliza o plano gratuito de banco de dados do Render
+  # Serviço 2: O Banco de Dados PostgreSQL (a memória)
+  - type: pserv
+    name: n8n-db
+    image: postgres:13 # <-- CORREÇÃO AQUI: Estrutura simplificada
+    plan: free
     region: oregon
-    envVars:           # ADIÇÃO AQUI: Definimos as variáveis para criar o banco e o usuário
+    envVars:
       - key: POSTGRES_DB
-        value: n8n
+        generateValue: true
       - key: POSTGRES_USER
-        value: n8n_user
+        generateValue: true
       - key: POSTGRES_PASSWORD
-        generateValue: true # O Render irá gerar uma senha segura automaticamente
+        generateValue: true
+    disk:
+      name: postgres-data
+      sizeGB: 1
