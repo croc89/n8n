@@ -14,16 +14,15 @@ services:
         fromService:
           type: pserv
           name: postgres
-          property: connectionString # <-- Agora isso vai funcionar, pois o serviço 'postgres' estará válido.
+          property: connectionString
       - key: TELEGRAM_BOT_TOKEN
         sync: false
 
   # Serviço do Banco de Dados PostgreSQL Gerenciado
   - type: pserv
     name: postgres
-    # <-- CORREÇÃO PRINCIPAL: A linha "env: postgres" foi removida.
-    # A Render já sabe o que fazer com um "type: pserv". Não são necessárias mais instruções de runtime.
     disk:
       name: postgres-data
-      mountPath: /var/lib/postgresql/data
+      # CORREÇÃO: A linha 'mountPath' foi REMOVIDA.
+      # Para um serviço 'pserv', a Render gerencia o ponto de montagem automaticamente.
       sizeGB: 1
